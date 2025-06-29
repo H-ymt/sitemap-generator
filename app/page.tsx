@@ -1,19 +1,73 @@
-import Link from "next/link";
+"use client";
+
 import Container from "./components/container";
-import { Button } from "./components/ui/button";
+import UrlInputForm from "./components/forms/url-input-form";
 
 export default function Home() {
+  const handleUrlSubmit = async (url: string) => {
+    // TODO: Cloudflare Workers APIへのリクエスト処理を実装
+    console.log("Submitted URL:", url);
+
+    // 仮の処理時間をシミュレート
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    alert(`サイトマップ生成を開始します: ${url}`);
+
+    // 実装時の参考：
+    // try {
+    //   const response = await fetch("/api/generate-sitemap", {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //       "User-Agent": "SitemapGenerator/1.0 (+https://your-domain.com/about)",
+    //     },
+    //     body: JSON.stringify({ url }),
+    //   });
+    //
+    //   if (!response.ok) {
+    //     throw new Error(`HTTP error! status: ${response.status}`);
+    //   }
+    //
+    //   const result = await response.json();
+    //   // サイトマップ生成結果の処理
+    // } catch (error) {
+    //   // エラーハンドリング
+    //   throw error; // フォームコンポーネントでキャッチされる
+    // }
+  };
+
+  //   const handleUrlSubmit = async (url: string) => {
+  //   const sitemap = await generateSitemap(url);
+  //   router.push(`/sitemap/${sitemap.id}`);
+  // };
+
   return (
     <Container>
-      <h1>Hello</h1>
-      <div className="">This is a Site map Generator</div>
-      <div className="flex gap-3 mt-4">
-        <Button asChild size="lg">
-          <Link href="/">Home</Link>
-        </Button>
-        <Button size="lg" variant="secondary">
-          Button Component
-        </Button>
+      <div className="py-12 md:py-20">
+        <div className="text-center space-y-10">
+          <div className="space-y-4">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+              サイトマップジェネレーター
+            </h1>
+            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              WebサイトのURLを入力するだけで、自動的にサイトマップXMLを生成します。
+              SEO最適化とサイト構造の把握に最適なツールです。
+            </p>
+          </div>
+
+          <UrlInputForm
+            onSubmit={handleUrlSubmit}
+            placeholder="https://example.com"
+            submitButtonText="サイトマップを生成"
+          />
+
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            <p>
+              ✓ 無料で利用可能 &nbsp;|&nbsp; ✓ XMLファイルをダウンロード &nbsp;|&nbsp; ✓
+              SEO最適化済み
+            </p>
+          </div>
+        </div>
       </div>
     </Container>
   );
