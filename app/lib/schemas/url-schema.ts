@@ -33,7 +33,7 @@ export const urlFormSchema = z.object({
         const ipMatch = hostname.match(ipv4Regex);
 
         if (ipMatch) {
-          const [, a, b, c, d] = ipMatch.map(Number);
+          const [, a, b] = ipMatch.map(Number);
 
           // RFC 1918 プライベートIPアドレス範囲
           if (
