@@ -1,6 +1,7 @@
 "use client";
 
 import { useAtom } from "jotai";
+import { useCallback, useRef, useEffect } from "react";
 import { urlFormSchema } from "../../lib/schemas/url-schema";
 import {
   urlFormAtom,
@@ -14,33 +15,67 @@ interface UrlInputFormProps {
   onSubmit?: (url: string) => void | Promise<void>;
   placeholder?: string;
   submitButtonText?: string;
+  showSampleUrls?: boolean;
 }
 
 export default function UrlInputForm({
   onSubmit,
   placeholder = "https://example.com",
   submitButtonText = "サイトマップを生成",
+  showSampleUrls = true,
 }: UrlInputFormProps) {
   const [urlState] = useAtom(urlFormAtom);
   const [, updateUrl] = useAtom(updateUrlAtom);
   const [, setUrlError] = useAtom(setUrlErrorAtom);
   const [, setSubmitting] = useAtom(setSubmittingAtom);
 
+  // デバウンス用のタイマー参照
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // デバウンス付きバリデーション関数
+  const debouncedValidation = useCallback(
+    (inputValue: string) => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      debounceTimerRef.current = setTimeout(() => {
+        if (inputValue.trim()) {
+          const result = urlFormSchema.safeParse({ url: inputValue });
+          if (!result.success) {
+            setUrlError(result.error.errors[0]?.message);
+          } else {
+            setUrlError(undefined);
+          }
+        } else {
+          setUrlError(undefined);
+        }
+      }, 300); // 300ms のデバウンス
+    },
+    [setUrlError]
+  );
+
+  // コンポーネントアンマウント時のクリーンアップ
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
     updateUrl(inputValue);
 
-    // リアルタイムバリデーション
-    if (inputValue.trim()) {
-      const result = urlFormSchema.safeParse({ url: inputValue });
-      if (!result.success) {
-        setUrlError(result.error.errors[0]?.message);
-      } else {
-        setUrlError(undefined);
-      }
-    } else {
-      setUrlError(undefined);
-    }
+    // デバウンス付きバリデーション
+    debouncedValidation(inputValue);
+  };
+
+  // サンプルURL選択ハンドラー
+  const handleSampleUrlClick = (sampleUrl: string) => {
+    updateUrl(sampleUrl);
+    debouncedValidation(sampleUrl);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,7 +98,19 @@ export default function UrlInputForm({
         setSubmitting(true);
         await onSubmit(urlState.url);
       } catch (error) {
-        setUrlError("エラーが発生しました。もう一度お試しください。");
+        // エラーの詳細に応じたメッセージを表示
+        let errorMessage = "エラーが発生しました。もう一度お試しください。";
+
+        if (error instanceof Error) {
+          if (error.message.includes("fetch")) {
+            errorMessage =
+              "ネットワークエラーが発生しました。インターネット接続を確認してください。";
+          } else if (error.message.includes("timeout")) {
+            errorMessage = "処理がタイムアウトしました。もう一度お試しください。";
+          }
+        }
+
+        setUrlError(errorMessage);
         console.error("Form submission error:", error);
       } finally {
         setSubmitting(false);
@@ -113,6 +160,25 @@ export default function UrlInputForm({
             </p>
           )}
         </div>
+
+        {showSampleUrls && (
+          <div className="space-y-2">
+            <p className="text-sm text-gray-600 dark:text-gray-400">サンプルURL:</p>
+            <div className="flex flex-wrap gap-2">
+              {["https://github.com", "https://stackoverflow.com"].map((sampleUrl) => (
+                <button
+                  key={sampleUrl}
+                  type="button"
+                  onClick={() => handleSampleUrlClick(sampleUrl)}
+                  className="text-sm px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  disabled={urlState.isSubmitting}
+                >
+                  {sampleUrl}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <Button
           type="submit"
