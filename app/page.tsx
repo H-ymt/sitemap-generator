@@ -13,17 +13,26 @@ export default function Home() {
 
     alert(`サイトマップ生成を開始します: ${url}`);
 
+    // 実装時の参考：
     // try {
     //   const response = await fetch("/api/generate-sitemap", {
     //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //       "User-Agent": "SitemapGenerator/1.0 (+https://your-domain.com/about)",
+    //     },
     //     body: JSON.stringify({ url }),
     //   });
-
+    //
+    //   if (!response.ok) {
+    //     throw new Error(`HTTP error! status: ${response.status}`);
+    //   }
+    //
     //   const result = await response.json();
     //   // サイトマップ生成結果の処理
     // } catch (error) {
     //   // エラーハンドリング
+    //   throw error; // フォームコンポーネントでキャッチされる
     // }
   };
 
