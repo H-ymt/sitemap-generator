@@ -1,11 +1,11 @@
-name = "sitemap-generator-api"
+name = "sitemap-generator-fullstack"
 main = "dist/index.js"
 compatibility_date = "2025-03-01"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
 ENVIRONMENT = "production"
-ALLOWED_ORIGINS = "https://sitemap-generator.pages.dev,https://your-custom-domain.com"
+ALLOWED_ORIGINS = "*"
 RATE_LIMIT_WINDOW_MS = "60000"
 RATE_LIMIT_MAX_REQUESTS = "10"
 MAX_URLS_PER_SITEMAP = "500"
@@ -19,9 +19,9 @@ MAX_REQUEST_SIZE_MB = "2"
 
 # ローカル開発設定
 [env.development]
-vars = { ENVIRONMENT = "development", ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:3001" }
+vars = { ENVIRONMENT = "development", ALLOWED_ORIGINS = "*" }
 
 [dev]
-port = 8787
+port = 3000
 local_protocol = "http"
 local = true
