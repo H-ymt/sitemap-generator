@@ -16,6 +16,7 @@ interface UrlInputFormProps {
   placeholder?: string;
   submitButtonText?: string;
   showSampleUrls?: boolean;
+  disabled?: boolean;
 }
 
 export default function UrlInputForm({
@@ -23,6 +24,7 @@ export default function UrlInputForm({
   placeholder = "https://example.com",
   submitButtonText = "サイトマップを生成",
   showSampleUrls = true,
+  disabled = false,
 }: UrlInputFormProps) {
   const [urlState] = useAtom(urlFormAtom);
   const [, updateUrl] = useAtom(updateUrlAtom);
@@ -147,7 +149,7 @@ export default function UrlInputForm({
               }
               dark:text-white placeholder:text-gray-400
             `}
-            disabled={urlState.isSubmitting}
+            disabled={urlState.isSubmitting || disabled}
             aria-describedby={urlState.error ? "url-error" : undefined}
           />
           {urlState.error && (
@@ -171,7 +173,7 @@ export default function UrlInputForm({
                   type="button"
                   onClick={() => handleSampleUrlClick(sampleUrl)}
                   className="text-sm px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                  disabled={urlState.isSubmitting}
+                  disabled={urlState.isSubmitting || disabled}
                 >
                   {sampleUrl}
                 </button>
@@ -182,7 +184,7 @@ export default function UrlInputForm({
 
         <Button
           type="submit"
-          disabled={!urlState.isValid || urlState.isSubmitting}
+          disabled={!urlState.isValid || urlState.isSubmitting || disabled}
           size="lg"
           className="w-full"
         >

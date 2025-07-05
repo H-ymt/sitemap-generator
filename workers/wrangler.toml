@@ -1,12 +1,19 @@
-{
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "sitemap-crawler-api",
-  "main": "dist/index.js",
-  "compatibility_date": "2025-03-01",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
-  "vars": {
-    "ENVIRONMENT": "development"
-  }
-}
+name = "sitemap-generator-api"
+main = "dist/index.js"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "production"
+
+# D1データベース設定（後で追加）
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "sitemap-generator"
+# database_id = "your-database-id"
+
+# ローカル開発設定
+[dev]
+port = 8787
+local_protocol = "http"
+local = true

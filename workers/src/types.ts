@@ -37,6 +37,7 @@ export const ErrorResponseSchema = z.object({
 // Types
 export type CrawlRequest = z.infer<typeof CrawlRequestSchema>;
 export type CrawlResult = z.infer<typeof CrawlResultSchema>;
+export type CrawlResponse = CrawlResult; // エイリアス
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 
 export interface CrawlPage {
