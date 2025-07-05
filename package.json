@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:full": "concurrently \"pnpm workers:dev\" \"pnpm dev\"",
-    "build": "pnpm run workers:build && next build",
+    "build": "1pnpm run workers:build && next build",
     "start": "next start",
     "lint": "next lint",
     "workers:dev": "cd workers && pnpm install && pnpm dev",
