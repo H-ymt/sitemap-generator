@@ -20,18 +20,39 @@ export default function Home() {
     setSitemapData(null);
 
     try {
-      // Next.js API Routesクローラーを使用（Workersの代替）
-      const crawlResponse = await fetch("/api/crawl", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          url: url,
-          maxDepth: 3, // 深度を3に増加
-          maxPages: 100, // ページ数を100に増加
-        }),
-      });
+      // Cloudflare Workersクローラーを試行し、失敗したらNext.js API Routesにフォールバック
+      let crawlResponse;
+      try {
+        crawlResponse = await fetch("http://localhost:8787/api/crawl", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: url,
+            maxDepth: 3,
+            maxPages: 100,
+          }),
+        });
+
+        // Next.jsアプリケーションの404エラーが返される場合はWorkersが動作していない
+        if (crawlResponse.status === 404) {
+          throw new Error("Workers not available");
+        }
+      } catch (workersError) {
+        console.log("Workers not available, using Next.js API Routes");
+        crawlResponse = await fetch("/api/crawl", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: url,
+            maxDepth: 3,
+            maxPages: 100,
+          }),
+        });
+      }
 
       if (!crawlResponse.ok) {
         throw new Error(`Crawl failed: ${crawlResponse.status}`);
