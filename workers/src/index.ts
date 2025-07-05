@@ -4,8 +4,29 @@ import { generateSitemapXML, validateSitemapPages } from "./sitemap-generator";
 import { SitemapGenerationRequest, SitemapGenerationResponse } from "./sitemap-types";
 
 interface Env {
-  // 環境変数やバインディングをここに定義
-  // 例: MY_KV: KVNamespace;
+  ENVIRONMENT: string;
+  ALLOWED_ORIGINS?: string;
+  RATE_LIMIT_WINDOW_MS?: string;
+  RATE_LIMIT_MAX_REQUESTS?: string;
+  MAX_URLS_PER_SITEMAP?: string;
+  MAX_REQUEST_SIZE_MB?: string;
+}
+
+// CORS設定を動的に取得
+function getCorsHeaders(env: Env, request: Request): Record<string, string> {
+  const origin = request.headers.get("Origin");
+  const allowedOrigins = env.ALLOWED_ORIGINS?.split(",") || ["*"];
+
+  const corsHeaders: Record<string, string> = {
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
+
+  if (allowedOrigins.includes("*") || (origin && allowedOrigins.includes(origin))) {
+    corsHeaders["Access-Control-Allow-Origin"] = origin || "*";
+  }
+
+  return corsHeaders;
 }
 
 export default {
@@ -15,11 +36,7 @@ export default {
     const method = request.method;
 
     // CORS設定
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    };
+    const corsHeaders = getCorsHeaders(env, request);
 
     // プリフライトリクエストの処理
     if (method === "OPTIONS") {
@@ -128,9 +145,3 @@ export default {
     }
   },
 };
-
-// 環境変数の型定義
-interface Env {
-  ENVIRONMENT: string;
-  NEXTJS_ENV?: string;
-}
