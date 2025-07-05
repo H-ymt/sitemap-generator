@@ -11,9 +11,13 @@ interface SitemapEntry {
 }
 
 interface SitemapGenerationResponse {
-  xml: string;
-  pageCount: number;
-  generatedAt: string;
+  success: boolean;
+  data?: {
+    xml: string;
+    pageCount: number;
+    generatedAt: string;
+  };
+  error?: string;
 }
 
 interface SitemapDisplayProps {
@@ -27,11 +31,23 @@ interface SitemapDisplayProps {
 export default function SitemapDisplay({ sitemapData, onDownload }: SitemapDisplayProps) {
   const [isDownloading, setIsDownloading] = useState(false);
 
+  // データが存在しない場合の早期リターン
+  if (!sitemapData.success || !sitemapData.data) {
+    return (
+      <div className="p-6 text-center text-red-600">
+        <p>サイトマップデータが正常に取得できませんでした。</p>
+        {sitemapData.error && <p className="mt-2 text-sm">{sitemapData.error}</p>}
+      </div>
+    );
+  }
+
+  const { xml, pageCount, generatedAt } = sitemapData.data;
+
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
       // XMLファイルをダウンロード
-      downloadXmlFile(sitemapData.xml, "sitemap.xml");
+      downloadXmlFile(xml, "sitemap.xml");
 
       // コールバック実行
       onDownload?.();
@@ -114,7 +130,7 @@ export default function SitemapDisplay({ sitemapData, onDownload }: SitemapDispl
     return urls;
   };
 
-  const urls = extractUrlsFromXml(sitemapData.xml);
+  const urls = extractUrlsFromXml(xml);
 
   return (
     <div className="space-y-6">
@@ -124,19 +140,15 @@ export default function SitemapDisplay({ sitemapData, onDownload }: SitemapDispl
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div>
             <span className="font-medium">ページ数:</span>
-            <span className="ml-2 ">{sitemapData.pageCount}</span>
+            <span className="ml-2 ">{pageCount}</span>
           </div>
           <div>
             <span className="font-medium">生成日時:</span>
-            <span className="ml-2">
-              {new Date(sitemapData.generatedAt).toLocaleString("ja-JP")}
-            </span>
+            <span className="ml-2">{new Date(generatedAt).toLocaleString("ja-JP")}</span>
           </div>
           <div>
             <span className="font-medium">ファイルサイズ:</span>
-            <span className="ml-2 ">
-              {(new Blob([sitemapData.xml]).size / 1024).toFixed(1)} KB
-            </span>
+            <span className="ml-2 ">{(new Blob([xml]).size / 1024).toFixed(1)} KB</span>
           </div>
         </div>
       </div>
@@ -204,7 +216,7 @@ export default function SitemapDisplay({ sitemapData, onDownload }: SitemapDispl
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-medium mb-4 text-background">XMLプレビュー</h3>
         <div className="p-4 rounded-lg max-h-96 overflow-auto">
-          <pre className="text-sm text-gray-700 whitespace-pre-wrap">{sitemapData.xml}</pre>
+          <pre className="text-sm text-gray-700 whitespace-pre-wrap">{xml}</pre>
         </div>
       </div>
     </div>
