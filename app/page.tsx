@@ -6,9 +6,13 @@ import UrlInputForm from "./components/forms/url-input-form";
 import SitemapDisplay from "./components/sitemap-display";
 
 interface SitemapGenerationResponse {
-  xml: string;
-  pageCount: number;
-  generatedAt: string;
+  success: boolean;
+  data?: {
+    xml: string;
+    pageCount: number;
+    generatedAt: string;
+  };
+  error?: string;
 }
 
 export default function Home() {
@@ -20,42 +24,21 @@ export default function Home() {
     setSitemapData(null);
 
     try {
-      // Cloudflare Workersクローラーを試行し、失敗したらNext.js API Routesにフォールバック
-      let crawlResponse;
-      try {
-        crawlResponse = await fetch("http://localhost:8787/api/crawl", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            url: url,
-            maxDepth: 3,
-            maxPages: 100,
-          }),
-        });
-
-        // Next.jsアプリケーションの404エラーが返される場合はWorkersが動作していない
-        if (crawlResponse.status === 404) {
-          throw new Error("Workers not available");
-        }
-      } catch (workersError) {
-        console.log("Workers not available, using Next.js API Routes");
-        crawlResponse = await fetch("/api/crawl", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            url: url,
-            maxDepth: 3,
-            maxPages: 100,
-          }),
-        });
-      }
+      const apiBaseUrl = process.env.NEXT_PUBLIC_WORKER_URL || "http://localhost:8787";
+      const crawlResponse = await fetch(`${apiBaseUrl}/api/crawl`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: url,
+          maxDepth: 3,
+          maxPages: 100,
+        }),
+      });
 
       if (!crawlResponse.ok) {
-        throw new Error(`Crawl failed: ${crawlResponse.status}`);
+        throw new Error(`クロールに失敗しました: ${crawlResponse.status}`);
       }
 
       const crawlResult = (await crawlResponse.json()) as {
@@ -80,65 +63,70 @@ export default function Home() {
       }
 
       // クロール結果をサイトマップXMLに変換
-      const sitemapResponse = await fetch("/api/sitemap/generate", {
+      const sitemapRequestData = {
+        baseUrl: url,
+        pages: crawlResult.data.pages.map((page) => ({
+          url: page.url,
+          lastmod: page.lastModified || new Date().toISOString().split("T")[0],
+          changefreq: "weekly" as const,
+          priority: page.priority || 0.5,
+        })),
+        includeLastmod: true,
+        includeChangefreq: true,
+        includePriority: true,
+      };
+
+      const sitemapResponse = await fetch(`${apiBaseUrl}/api/sitemap/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          baseUrl: url,
-          pages: crawlResult.data.pages.map((page) => ({
-            url: page.url,
-            lastmod: page.lastModified || new Date().toISOString().split("T")[0],
-            changefreq: "weekly",
-            priority: page.priority || 0.5,
-          })),
-          includeLastmod: true,
-          includeChangefreq: true,
-          includePriority: true,
-        }),
+        body: JSON.stringify(sitemapRequestData),
       });
 
       if (!sitemapResponse.ok) {
-        throw new Error(`Sitemap generation failed: ${sitemapResponse.status}`);
+        const errorText = await sitemapResponse.text();
+        throw new Error(
+          `サイトマップ生成に失敗しました: ${sitemapResponse.status} - ${errorText}`
+        );
       }
 
       const result: SitemapGenerationResponse = await sitemapResponse.json();
+
+      if (!result.success) {
+        throw new Error(result.error || "サイトマップ生成に失敗しました");
+      }
+
       setSitemapData(result);
     } catch (error) {
       console.error("Sitemap generation error:", error);
 
-      // エラーの場合、サンプルデータにフォールバック
-      console.log("Crawling failed, falling back to sample data...");
-      try {
-        const response = await fetch(
-          `/api/sitemap/generate?baseUrl=${encodeURIComponent(url)}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
+      let errorMessage = "サイトマップの生成に失敗しました。";
 
-        if (response.ok) {
-          const result: SitemapGenerationResponse = await response.json();
-          setSitemapData(result);
-          alert("⚠️ 実際のクロールに失敗しました。サンプルデータを表示しています。");
+      if (error instanceof Error) {
+        if (
+          error.message.includes("Failed to fetch") ||
+          error.message.includes("NetworkError")
+        ) {
+          errorMessage =
+            "ネットワークエラーが発生しました。サーバーが正常に動作しているか確認してください。";
+        } else if (error.message.includes("404")) {
+          errorMessage =
+            "APIエンドポイントに接続できませんでした。サーバーが正常に動作しているか確認してください。";
         } else {
-          throw error;
+          errorMessage = error.message;
         }
-      } catch (fallbackError) {
-        alert("サイトマップの生成に失敗しました。しばらくしてから再度お試しください。");
-        throw fallbackError;
       }
+
+      alert(errorMessage);
+      throw error; // フォームコンポーネントでキャッチされる
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleDownload = () => {
-    console.log("Sitemap downloaded successfully!");
+    // サイトマップダウンロード完了後の処理
   };
 
   return (
