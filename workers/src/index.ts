@@ -3,6 +3,12 @@ import { CrawlRequest, CrawlResponse } from "./types";
 import { generateSitemapXML, validateSitemapPages } from "./sitemap-generator";
 import { SitemapGenerationRequest, SitemapGenerationResponse } from "./sitemap-types";
 
+// Cloudflare Workers の型定義
+interface Env {
+  // 環境変数やバインディングをここに定義
+  // 例: MY_KV: KVNamespace;
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
