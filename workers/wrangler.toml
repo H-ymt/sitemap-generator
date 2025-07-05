@@ -5,6 +5,11 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 ENVIRONMENT = "production"
+ALLOWED_ORIGINS = "https://sitemap-generator.pages.dev,https://your-custom-domain.com"
+RATE_LIMIT_WINDOW_MS = "60000"
+RATE_LIMIT_MAX_REQUESTS = "10"
+MAX_URLS_PER_SITEMAP = "500"
+MAX_REQUEST_SIZE_MB = "2"
 
 # D1データベース設定（後で追加）
 # [[d1_databases]]
@@ -13,6 +18,9 @@ ENVIRONMENT = "production"
 # database_id = "your-database-id"
 
 # ローカル開発設定
+[env.development]
+vars = { ENVIRONMENT = "development", ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:3001" }
+
 [dev]
 port = 8787
 local_protocol = "http"
