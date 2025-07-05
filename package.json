@@ -14,8 +14,6 @@
     "cf:deploy": "pnpm run cf:build && wrangler pages deploy .open-next/worker",
     "cf:preview": "pnpm run cf:build && wrangler pages dev .open-next/worker",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts",
-    "setup:deploy": "./scripts/setup-deploy.sh",
-    "setup:preview": "./scripts/setup-preview.sh",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
