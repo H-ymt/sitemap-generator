@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { CrawlContext, CrawlPage } from "./types/crawler";
+import { CrawlPage, CrawlContext } from "./types";
 
 export class WebCrawler {
   private context: CrawlContext;
@@ -15,210 +15,153 @@ export class WebCrawler {
     };
   }
 
-  /**
-   * URLを正規化（末尾のスラッシュを削除など）
-   */
   private normalizeUrl(url: string): string {
     try {
-      const urlObj = new URL(url);
-      return urlObj.origin + urlObj.pathname.replace(/\/$/, "");
-    } catch {
+      const parsedUrl = new URL(url);
+      return `${parsedUrl.protocol}//${parsedUrl.hostname}${
+        parsedUrl.port ? `:${parsedUrl.port}` : ""
+      }`;
+    } catch (error) {
       throw new Error(`無効なURLです: ${url}`);
     }
   }
 
-  /**
-   * 相対URLを絶対URLに変換
-   */
-  private resolveUrl(baseUrl: string, relativeUrl: string): string {
+  async crawl(): Promise<CrawlPage[]> {
+    await this.crawlPage(this.context.baseUrl, 0);
+    return this.context.pages;
+  }
+
+  private async crawlPage(url: string, depth: number): Promise<void> {
+    // 制限チェック
+    if (
+      depth > this.context.maxDepth ||
+      this.context.pages.length >= this.context.maxPages ||
+      this.context.visitedUrls.has(url)
+    ) {
+      return;
+    }
+
+    this.context.visitedUrls.add(url);
+
     try {
-      return new URL(relativeUrl, baseUrl).href;
-    } catch {
-      return "";
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "User-Agent": "SitemapGenerator/1.0",
+        },
+      });
+
+      if (!response.ok) {
+        console.warn(`Failed to fetch ${url}: ${response.status}`);
+        return;
+      }
+
+      const html = await response.text();
+      const $ = cheerio.load(html);
+
+      // ページ情報を抽出
+      const title = $("title").text().trim();
+      const lastModified = response.headers.get("last-modified");
+
+      const page: CrawlPage = {
+        url,
+        ...(title && { title }),
+        ...(lastModified && { lastModified }),
+        priority: depth === 0 ? 1.0 : Math.max(0.1, 1.0 - depth * 0.2),
+      };
+
+      this.context.pages.push(page);
+
+      // 内部リンクを抽出
+      if (depth < this.context.maxDepth) {
+        const links = this.extractInternalLinks($, url);
+
+        for (const link of links) {
+          if (this.context.pages.length >= this.context.maxPages) {
+            break;
+          }
+          await this.crawlPage(link, depth + 1);
+        }
+      }
+    } catch (error) {
+      console.error(`Error crawling ${url}:`, error);
     }
   }
 
-  /**
-   * URLが同一ドメインかチェック
-   */
-  private isSameDomain(url: string): boolean {
-    try {
-      const baseHostname = new URL(this.context.baseUrl).hostname;
-      const urlHostname = new URL(url).hostname;
-      return baseHostname === urlHostname;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * HTMLからリンクを抽出
-   */
-  private extractLinks(html: string, currentUrl: string): string[] {
-    const $ = cheerio.load(html);
+  private extractInternalLinks($: cheerio.CheerioAPI, currentUrl: string): string[] {
     const links: string[] = [];
+    const baseHost = new URL(this.context.baseUrl).hostname;
 
     $("a[href]").each((_, element) => {
       const href = $(element).attr("href");
       if (!href) return;
 
-      // フラグメント（#）やクエリパラメータを除去
-      const cleanHref = href.split("#")[0].split("?")[0];
-      if (!cleanHref || cleanHref === "/") return;
+      try {
+        const absoluteUrl = new URL(href, currentUrl);
 
-      // 絶対URLに変換
-      const absoluteUrl = this.resolveUrl(currentUrl, cleanHref);
-      if (!absoluteUrl) return;
+        // 同じドメインの場合のみ
+        if (absoluteUrl.hostname === baseHost) {
+          const cleanUrl = `${absoluteUrl.protocol}//${absoluteUrl.hostname}${absoluteUrl.pathname}`;
 
-      // 同一ドメインかつ未訪問のURLのみ追加
-      if (this.isSameDomain(absoluteUrl) && !this.context.visitedUrls.has(absoluteUrl)) {
-        links.push(absoluteUrl);
+          if (
+            !this.context.visitedUrls.has(cleanUrl) &&
+            !links.includes(cleanUrl) &&
+            !this.isExcludedPath(absoluteUrl.pathname)
+          ) {
+            links.push(cleanUrl);
+          }
+        }
+      } catch (error) {
+        // 無効なURLは無視
       }
     });
 
-    return [...new Set(links)]; // 重複除去
+    return links;
   }
 
-  /**
-   * ページのメタデータを抽出
-   */
-  private extractPageMetadata(html: string, url: string): CrawlPage {
-    const $ = cheerio.load(html);
+  private isExcludedPath(pathname: string): boolean {
+    const excludedPatterns = [
+      /\.(jpg|jpeg|png|gif|pdf|doc|docx|xls|xlsx|zip|rar)$/i,
+      /\/(admin|login|register|logout|api)\//,
+      /#/,
+    ];
 
-    // タイトルを取得
-    const title = $("title").text().trim() || $("h1").first().text().trim() || "";
-
-    // 最終更新日を取得（meta要素から）
-    const lastModified =
-      $('meta[name="last-modified"]').attr("content") ||
-      $('meta[property="article:modified_time"]').attr("content");
-
-    return {
-      url: this.normalizeUrl(url),
-      title: title || undefined,
-      lastModified: lastModified || undefined,
-      priority: 0.5, // デフォルト優先度
-    };
+    return excludedPatterns.some((pattern) => pattern.test(pathname));
   }
 
-  /**
-   * 単一ページをクロール
-   */
-  private async crawlPage(url: string): Promise<string[]> {
-    try {
-      const response = await fetch(url, {
-        headers: {
-          "User-Agent": "SitemapGenerator/1.0 (+https://sitemap-generator.example.com)",
-          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        },
-        // タイムアウト設定
-        signal: AbortSignal.timeout(10000), // 10秒
-      });
-
-      if (!response.ok) {
-        console.warn(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
-        return [];
-      }
-
-      const contentType = response.headers.get("content-type") || "";
-      if (!contentType.includes("text/html")) {
-        console.warn(`Skipping non-HTML content: ${url}`);
-        return [];
-      }
-
-      const html = await response.text();
-
-      // ページメタデータを保存
-      const pageMetadata = this.extractPageMetadata(html, url);
-      this.context.pages.push(pageMetadata);
-
-      // リンクを抽出して返す
-      return this.extractLinks(html, url);
-    } catch (error) {
-      console.error(`Error crawling ${url}:`, error);
-      return [];
-    }
-  }
-
-  /**
-   * 再帰的にクロールを実行
-   */
-  private async crawlRecursive(urls: string[], depth: number): Promise<void> {
-    if (depth > this.context.maxDepth || this.context.pages.length >= this.context.maxPages) {
-      return;
-    }
-
-    const urlsToCrawl = urls.slice(0, this.context.maxPages - this.context.pages.length);
-    const nextLevelUrls: string[] = [];
-
-    // 並列処理でページをクロール（最大5並列）
-    const batchSize = 5;
-    for (let i = 0; i < urlsToCrawl.length; i += batchSize) {
-      const batch = urlsToCrawl.slice(i, i + batchSize);
-
-      const results = await Promise.allSettled(
-        batch.map(async (url) => {
-          if (
-            this.context.visitedUrls.has(url) ||
-            this.context.pages.length >= this.context.maxPages
-          ) {
-            return [];
-          }
-
-          this.context.visitedUrls.add(url);
-          return await this.crawlPage(url);
-        })
-      );
-
-      // 成功した結果から次レベルのURLを収集
-      results.forEach((result) => {
-        if (result.status === "fulfilled") {
-          nextLevelUrls.push(...result.value);
-        }
-      });
-
-      // ページ数制限チェック
-      if (this.context.pages.length >= this.context.maxPages) {
-        break;
-      }
-    }
-
-    // 次の深度へ
-    if (nextLevelUrls.length > 0 && depth < this.context.maxDepth) {
-      await this.crawlRecursive([...new Set(nextLevelUrls)], depth + 1);
-    }
-  }
-
-  /**
-   * クロール開始
-   */
-  async crawl(): Promise<CrawlPage[]> {
-    const startTime = Date.now();
-
-    try {
-      // ベースURLをクロール開始
-      await this.crawlRecursive([this.context.baseUrl], 1);
-
-      const crawlTime = Date.now() - startTime;
-      console.log(
-        `Crawl completed in ${crawlTime}ms. Found ${this.context.pages.length} pages.`
-      );
-
-      return this.context.pages;
-    } catch (error) {
-      console.error("Crawl failed:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * クロール結果の統計情報を取得
-   */
   getStats() {
     return {
+      baseUrl: this.context.baseUrl,
       totalPages: this.context.pages.length,
       visitedUrls: this.context.visitedUrls.size,
-      baseUrl: this.context.baseUrl,
+    };
+  }
+}
+
+// メイン関数：外部から呼び出し可能
+export async function crawlSitemap(
+  url: string,
+  maxPages: number = 50,
+  maxDepth: number = 2
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const crawler = new WebCrawler(url, maxDepth, maxPages);
+    const pages = await crawler.crawl();
+    const stats = crawler.getStats();
+
+    return {
+      success: true,
+      data: {
+        baseUrl: stats.baseUrl,
+        pages: pages,
+        totalPages: stats.totalPages,
+        crawlTime: Date.now(),
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "不明なエラーが発生しました",
     };
   }
 }
