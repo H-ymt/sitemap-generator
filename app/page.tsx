@@ -1,45 +1,124 @@
 "use client";
 
+import { useState } from "react";
 import Container from "./components/container";
 import UrlInputForm from "./components/forms/url-input-form";
+import SitemapDisplay from "./components/sitemap-display";
+
+interface SitemapGenerationResponse {
+  xml: string;
+  pageCount: number;
+  generatedAt: string;
+}
 
 export default function Home() {
+  const [sitemapData, setSitemapData] = useState<SitemapGenerationResponse | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
   const handleUrlSubmit = async (url: string) => {
-    // TODO: Cloudflare Workers APIへのリクエスト処理を実装
-    console.log("Submitted URL:", url);
+    setIsGenerating(true);
+    setSitemapData(null);
 
-    // 仮の処理時間をシミュレート
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      // Next.js API Routesクローラーを使用（Workersの代替）
+      const crawlResponse = await fetch("/api/crawl", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: url,
+          maxDepth: 3, // 深度を3に増加
+          maxPages: 100, // ページ数を100に増加
+        }),
+      });
 
-    alert(`サイトマップ生成を開始します: ${url}`);
+      if (!crawlResponse.ok) {
+        throw new Error(`Crawl failed: ${crawlResponse.status}`);
+      }
 
-    // 実装時の参考：
-    // try {
-    //   const response = await fetch("/api/generate-sitemap", {
-    //     method: "POST",
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //       "User-Agent": "SitemapGenerator/1.0 (+https://your-domain.com/about)",
-    //     },
-    //     body: JSON.stringify({ url }),
-    //   });
-    //
-    //   if (!response.ok) {
-    //     throw new Error(`HTTP error! status: ${response.status}`);
-    //   }
-    //
-    //   const result = await response.json();
-    //   // サイトマップ生成結果の処理
-    // } catch (error) {
-    //   // エラーハンドリング
-    //   throw error; // フォームコンポーネントでキャッチされる
-    // }
+      const crawlResult = (await crawlResponse.json()) as {
+        success: boolean;
+        data?: {
+          pages: Array<{
+            url: string;
+            title?: string;
+            lastModified?: string;
+            priority: number;
+          }>;
+        };
+        error?: string;
+      };
+
+      if (!crawlResult.success) {
+        throw new Error(crawlResult.error || "クロールに失敗しました");
+      }
+
+      if (!crawlResult.data) {
+        throw new Error("クロール結果が空です");
+      }
+
+      // クロール結果をサイトマップXMLに変換
+      const sitemapResponse = await fetch("/api/sitemap/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          baseUrl: url,
+          pages: crawlResult.data.pages.map((page) => ({
+            url: page.url,
+            lastmod: page.lastModified || new Date().toISOString().split("T")[0],
+            changefreq: "weekly",
+            priority: page.priority || 0.5,
+          })),
+          includeLastmod: true,
+          includeChangefreq: true,
+          includePriority: true,
+        }),
+      });
+
+      if (!sitemapResponse.ok) {
+        throw new Error(`Sitemap generation failed: ${sitemapResponse.status}`);
+      }
+
+      const result: SitemapGenerationResponse = await sitemapResponse.json();
+      setSitemapData(result);
+    } catch (error) {
+      console.error("Sitemap generation error:", error);
+
+      // エラーの場合、サンプルデータにフォールバック
+      console.log("Crawling failed, falling back to sample data...");
+      try {
+        const response = await fetch(
+          `/api/sitemap/generate?baseUrl=${encodeURIComponent(url)}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.ok) {
+          const result: SitemapGenerationResponse = await response.json();
+          setSitemapData(result);
+          alert("⚠️ 実際のクロールに失敗しました。サンプルデータを表示しています。");
+        } else {
+          throw error;
+        }
+      } catch (fallbackError) {
+        alert("サイトマップの生成に失敗しました。しばらくしてから再度お試しください。");
+        throw fallbackError;
+      }
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  //   const handleUrlSubmit = async (url: string) => {
-  //   const sitemap = await generateSitemap(url);
-  //   router.push(`/sitemap/${sitemap.id}`);
-  // };
+  const handleDownload = () => {
+    console.log("Sitemap downloaded successfully!");
+  };
 
   return (
     <Container>
@@ -58,7 +137,8 @@ export default function Home() {
           <UrlInputForm
             onSubmit={handleUrlSubmit}
             placeholder="https://example.com"
-            submitButtonText="サイトマップを生成"
+            submitButtonText={isGenerating ? "生成中..." : "サイトマップを生成"}
+            disabled={isGenerating}
           />
 
           <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -68,6 +148,13 @@ export default function Home() {
             </p>
           </div>
         </div>
+
+        {/* サイトマップ表示エリア */}
+        {sitemapData && (
+          <div className="mt-12">
+            <SitemapDisplay sitemapData={sitemapData} onDownload={handleDownload} />
+          </div>
+        )}
       </div>
     </Container>
   );
