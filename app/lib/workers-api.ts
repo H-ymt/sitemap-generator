@@ -1,5 +1,8 @@
 // Workers API クライアント
-const API_BASE_URL = process.env.NEXT_PUBLIC_WORKER_URL || "http://localhost:8787";
+const API_BASE_URL =
+  process.env.NODE_ENV === "production"
+    ? "" // 本番環境では相対パス（同一ドメイン）
+    : "http://localhost:8787"; // ローカル開発環境のみ外部URL
 
 export interface CrawlRequest {
   url: string;

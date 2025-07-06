@@ -1,4 +1,4 @@
-name = "sitemap-generator-api"
+name = "sitemap-generator"
 main = "dist/index.js"
 compatibility_date = "2025-03-01"
 compatibility_flags = ["nodejs_compat"]

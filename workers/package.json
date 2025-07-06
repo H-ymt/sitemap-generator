@@ -1,5 +1,5 @@
 {
-  "name": "sitemap-generator-workers",
+  "name": "sitemap-generator",
   "version": "1.0.0",
   "description": "Sitemap Generator Full Stack App powered by Cloudflare Workers",
   "main": "dist/index.js",

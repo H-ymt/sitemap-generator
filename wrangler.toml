@@ -1,0 +1,12 @@
+name = "sitemap-generator"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+[build]
+command = "npm run build:cf"
+
+[vars]
+NEXT_PUBLIC_WORKER_URL = "https://sitemap-generator.y-handai1272.workers.dev"
+
+# 本番環境とステージング環境では、デフォルト値を継承
+# 必要に応じて、Cloudflare Dashboard で環境変数を上書き可能

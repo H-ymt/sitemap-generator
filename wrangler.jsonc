@@ -4,7 +4,7 @@
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "sitemap-generator-api",
+  "name": "sitemap-generator",
   "main": "workers/dist/index.js",
   "compatibility_date": "2025-03-01",
   "compatibility_flags": ["nodejs_compat"],

@@ -4,7 +4,6 @@ import { crawlSitemap } from "./crawler";
 import { CrawlRequest, CrawlResponse } from "./types";
 import { generateSitemapXML, validateSitemapPages } from "./sitemap-generator";
 import { SitemapGenerationRequest, SitemapGenerationResponse } from "./sitemap-types";
-import { renderHtml } from "./templates/html";
 
 interface Env {
   ENVIRONMENT: string;
@@ -50,16 +49,6 @@ app.use(
 app.use("*", async (c, next) => {
   c.set("env", c.env);
   await next();
-});
-
-// フロントエンドのルーティング
-app.get("/", (c) => {
-  return c.html(renderHtml());
-});
-
-// シンプルなfaviconレスポンス
-app.get("/favicon.ico", (c) => {
-  return new Response(null, { status: 204 });
 });
 
 // API エンドポイント
