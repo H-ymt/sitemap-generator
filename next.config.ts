@@ -8,9 +8,8 @@ const nextConfig: NextConfig = {
         source: "/api/:path*",
         destination:
           process.env.NODE_ENV === "production"
-            ? `https://sitemap-generator-api.${
-                process.env.CLOUDFLARE_WORKERS_DOMAIN || "workers.dev"
-              }/:path*`
+            ? process.env.NEXT_PUBLIC_WORKER_URL ||
+              "https://sitemap-generator-api.y-handai1272.workers.dev"
             : "http://localhost:8787/:path*",
       },
     ];

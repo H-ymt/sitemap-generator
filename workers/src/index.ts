@@ -25,7 +25,21 @@ const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 app.use(
   "*",
   cors({
-    origin: "*",
+    origin: (origin, c) => {
+      // 開発環境では全てのオリジンを許可
+      if (c.env.ENVIRONMENT === "development") {
+        return origin || "*";
+      }
+
+      // 本番環境では許可されたオリジンのみ
+      const allowedOrigins = (c.env.ALLOWED_ORIGINS || "")
+        .split(",")
+        .map((o: string) => o.trim());
+      if (allowedOrigins.includes(origin || "") || origin === undefined) {
+        return origin || "*";
+      }
+      return null;
+    },
     allowMethods: ["GET", "POST", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
   })
