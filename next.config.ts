@@ -6,17 +6,18 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
 
-  // API Routes を Cloudflare Workers にリダイレクト
   async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination:
-          process.env.NODE_ENV === "production"
-            ? process.env.NEXT_PUBLIC_WORKER_URL + "/:path*"
-            : "http://localhost:8787/:path*",
-      },
-    ];
+    // 開発環境のみ：API呼び出しをWorkers開発サーバーにリダイレクト
+    if (process.env.NODE_ENV === "development") {
+      return [
+        {
+          source: "/api/:path*",
+          destination: "http://localhost:8787/:path*",
+        },
+      ];
+    }
+    // 本番環境では同一ドメインなのでrewritesは不要
+    return [];
   },
 
   // 外部API呼び出しを許可
