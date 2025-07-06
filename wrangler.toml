@@ -1,0 +1,15 @@
+name = "sitemap-generator"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+[build]
+command = "npm run build:cf"
+
+[vars]
+NEXT_PUBLIC_WORKER_URL = "https://sitemap-generator-api.y-handai1272.workers.dev"
+
+[[env.production.vars]]
+NEXT_PUBLIC_WORKER_URL = "https://sitemap-generator-api.y-handai1272.workers.dev"
+
+[[env.staging.vars]]
+NEXT_PUBLIC_WORKER_URL = "https://sitemap-generator-api.y-handai1272.workers.dev"

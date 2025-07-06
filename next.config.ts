@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
+  },
+
   // API Routes を Cloudflare Workers にリダイレクト
   async rewrites() {
     return [
@@ -8,8 +13,7 @@ const nextConfig: NextConfig = {
         source: "/api/:path*",
         destination:
           process.env.NODE_ENV === "production"
-            ? process.env.NEXT_PUBLIC_WORKER_URL ||
-              "https://sitemap-generator-api.y-handai1272.workers.dev"
+            ? process.env.NEXT_PUBLIC_WORKER_URL + "/:path*"
             : "http://localhost:8787/:path*",
       },
     ];
@@ -40,7 +44,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-
-// added by create cloudflare to enable calling `getCloudflareContext()` in `next dev`
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
-initOpenNextCloudflareForDev();

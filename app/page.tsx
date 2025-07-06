@@ -24,7 +24,10 @@ export default function Home() {
     setSitemapData(null);
 
     try {
+      // 本番環境では環境変数から、開発環境では localhost から取得
       const apiBaseUrl = process.env.NEXT_PUBLIC_WORKER_URL || "http://localhost:8787";
+      console.log("API Base URL:", apiBaseUrl); // デバッグ用
+
       const crawlResponse = await fetch(`${apiBaseUrl}/api/crawl`, {
         method: "POST",
         headers: {
