@@ -1,21 +1,27 @@
 {
   "name": "sitemap-generator-workers",
   "version": "1.0.0",
-  "description": "Sitemap Generator API powered by Cloudflare Workers",
+  "description": "Sitemap Generator Full Stack App powered by Cloudflare Workers",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "wrangler dev --port 8787 --local",
+    "dev": "wrangler dev --port 3000 --local",
     "build": "tsc && cp package.json dist/",
     "deploy": "wrangler deploy",
     "test": "vitest"
   },
   "dependencies": {
     "cheerio": "^1.1.0",
-    "zod": "^3.25.67"
+    "zod": "^3.25.67",
+    "hono": "^4.7.10",
+    "@hono/node-server": "^1.14.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250705.0",
     "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
     "typescript": "^5",
     "vitest": "^1.0.0",
     "wrangler": "^4.22.0"
