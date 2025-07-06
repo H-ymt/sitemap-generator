@@ -1,5 +1,5 @@
 // Workers API クライアント
-const API_BASE_URL = process.env.NEXT_PUBLIC_WORKERS_API_URL || "http://localhost:8787";
+const API_BASE_URL = process.env.NEXT_PUBLIC_WORKER_URL || "http://localhost:8787";
 
 export interface CrawlRequest {
   url: string;
