@@ -3,27 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "pnpm workers:dev",
-    "build": "pnpm workers:build",
-    "start": "pnpm workers:dev",
-    "deploy": "pnpm workers:deploy",
-    "workers:dev": "cd workers && pnpm install && pnpm dev",
+    "dev": "cd workers && wrangler dev --port 3000 --local",
+    "build": "cd workers && pnpm install && pnpm build",
+    "deploy": "cd workers && wrangler deploy",
     "workers:build": "cd workers && pnpm install && pnpm build",
-    "workers:deploy": "cd workers && pnpm install && pnpm deploy",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:debug": "playwright test --debug",
-    "test:e2e:report": "playwright show-report"
+    "workers:deploy": "cd workers && wrangler deploy",
+    "workers:dev": "cd workers && wrangler dev --port 3000 --local",
+    "tail": "cd workers && wrangler tail"
   },
-  "dependencies": {
-    "cheerio": "^1.1.0",
-    "zod": "^3.25.67"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "@playwright/test": "^1.53.1",
-    "@types/node": "^20",
-    "concurrently": "^9.2.0",
-    "typescript": "^5",
-    "wrangler": "^4.22.0"
+    "typescript": "^5"
   }
 }
