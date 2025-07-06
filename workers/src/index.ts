@@ -13,6 +13,7 @@ interface Env {
   RATE_LIMIT_MAX_REQUESTS?: string;
   MAX_URLS_PER_SITEMAP?: string;
   MAX_REQUEST_SIZE_MB?: string;
+  LOG_LEVEL?: string;
 }
 
 type Variables = {
@@ -63,7 +64,15 @@ app.get("/favicon.ico", (c) => {
 
 // API エンドポイント
 app.get("/health", (c) => {
-  return c.json({ status: "ok", timestamp: new Date().toISOString() });
+  const logLevel = c.env.LOG_LEVEL || "info";
+  if (logLevel === "debug") {
+    console.log("Health check requested", { timestamp: new Date().toISOString() });
+  }
+  return c.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    environment: c.env.ENVIRONMENT || "unknown",
+  });
 });
 
 // サイトマップクロール

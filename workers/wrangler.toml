@@ -4,12 +4,16 @@ compatibility_date = "2025-03-01"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
+# 基本設定（本番環境ではDashboardで上書き）
 ENVIRONMENT = "production"
-ALLOWED_ORIGINS = "https://sitemap-generator.y-handai1272.workers.dev,https://sitemap-generator-api.y-handai1272.workers.dev"
+
+# 開発用デフォルト値（本番環境ではDashboardで上書き）
+ALLOWED_ORIGINS = "*"
 RATE_LIMIT_WINDOW_MS = "60000"
 RATE_LIMIT_MAX_REQUESTS = "10"
 MAX_URLS_PER_SITEMAP = "500"
 MAX_REQUEST_SIZE_MB = "2"
+LOG_LEVEL = "info"
 
 # D1データベース設定（後で追加）
 # [[d1_databases]]
